@@ -29,26 +29,23 @@ public:
         return distance / 50.0; // 50 km/h
     }
 
-    // Book a ticket
-    bool bookTicket()
+    // Book a seat
+    bool bookSeat()
     {
         if (passengers < capacity)
         {
             passengers++;
-            cout << "Booking successful! Current: " << passengers << "/" << capacity << " passengers" << endl;
             return true;
         }
-        cout << "Cannot book - vehicle is full!" << endl;
         return false;
     }
 
-    // Cancel a ticket
-    bool cancelTicket()
+    // Cancel a seat
+    bool cancelSeat()
     {
         if (passengers > 0)
         {
             passengers--;
-            cout << "Cancellation successful! Current: " << passengers << "/" << capacity << " passengers" << endl;
             return true;
         }
         return false;
@@ -90,7 +87,7 @@ public:
     {
         return distance / expressSpeed;
     }
-    
+
     void displayInfo() override
     {
         cout << "=== EXPRESS BUS ===" << endl;
@@ -150,13 +147,25 @@ public:
     }
 };
 
+class Ticket
+{
+    string info;
+    Vehicle *vehicle;
+
+public:
+    Ticket(const string &i, Vehicle *v) : info(i), vehicle(v) {}
+
+    string getInfo() const { return info; }
+    Vehicle *getVehicle() const { return vehicle; }
+};
+
 // Passenger class
 class Passenger
 {
 private:
     string name;
     string id;
-    vector<string> bookedTickets;
+    vector<Ticket> bookedTickets;
 
 public:
     // Constructor
@@ -164,26 +173,47 @@ public:
     {
         name = passengerName;
         id = passId;
-        cout << "Passenger " << name << " joined the system" << endl;
     }
 
     // Destructor
     ~Passenger() {}
 
     // Book a ticket
-    bool bookTicket(Vehicle *vehicle, string ticketInfo)
+    bool bookTicket(Vehicle *vehicle, const string &ticketInfo)
     {
-        if (vehicle->bookTicket())
+        if (!vehicle)
+            return false;
+
+        if (vehicle->bookSeat())
         {
-            bookedTickets.push_back(ticketInfo);
-            cout << name << " booked ticket: " << ticketInfo << endl;
+            bookedTickets.emplace_back(ticketInfo, vehicle);
+            cout << "[" << name << "] Booked successfully ticket " << ticketInfo << "!\n";
             return true;
         }
         else
         {
-            cout << name << " cannot book ticket for: " << ticketInfo << endl;
+            cout << "[" << name << "] Booking failed: vehicle full!\n";
             return false;
         }
+    }
+
+    // Cancel a ticket
+    bool cancelTicket(const string &ticketInfo)
+    {
+        for (size_t i = 0; i < bookedTickets.size(); ++i)
+        {
+            if (bookedTickets[i].getInfo() == ticketInfo)
+            {
+                if (bookedTickets[i].getVehicle()->cancelSeat())
+                {
+                    bookedTickets.erase(bookedTickets.begin() + i);
+                    cout << "[" << name << "] Cancelled ticket: " << ticketInfo << "\n";
+                    return true;
+                }
+            }
+        }
+        cout << "[" << name << "] Cannot cancel: ticket not found!\n";
+        return false;
     }
 
     // Display passenger information
@@ -195,7 +225,7 @@ public:
         cout << "Number of tickets booked: " << bookedTickets.size() << endl;
         for (int i = 0; i < bookedTickets.size(); i++)
         {
-            cout << "  Ticket " << (i + 1) << ": " << bookedTickets[i] << endl;
+            cout << "  Ticket " << (i + 1) << ": " << bookedTickets[i].getInfo() << endl;
         }
     }
 };
@@ -211,7 +241,7 @@ int main()
     Station busTerminal("Thu Duc Station", "Thu Duc");
 
     // Create vehicles
-    Vehicle *regularBus = new Vehicle("Route 01", 40);
+    Vehicle *bus = new Vehicle("Route 01", 40);
     ExpressBus *expressBus = new ExpressBus("Express Route 02", 50, 80);
 
     cout << endl;
@@ -220,12 +250,12 @@ int main()
     cout << "=== TRAVEL TIME COMPARISON ===" << endl;
     double distance = 100; // 100km
     cout << "Distance: " << distance << " km" << endl;
-    cout << "Regular bus travel time: " << regularBus->calculateTravelTime(distance) << " hours" << endl;
+    cout << "Bus travel time: " << bus->calculateTravelTime(distance) << " hours" << endl;
     cout << "Express bus travel time: " << expressBus->calculateTravelTime(distance) << " hours" << endl;
     cout << endl;
 
     // Display vehicle information
-    regularBus->displayInfo();
+    bus->displayInfo();
     cout << endl;
     expressBus->displayInfo();
     cout << endl;
@@ -245,22 +275,27 @@ int main()
 
     // Booking system
     cout << "=== BOOKING SYSTEM ===" << endl;
-    passenger1.bookTicket(regularBus, "Route 01 - 08:00");
+    passenger1.bookTicket(bus, "Route 01 - 08:00");
     passenger2.bookTicket(expressBus, "Express Route 02 - 08:15");
     cout << endl;
 
     // Test capacity limits
     cout << "=== CAPACITY LIMIT TEST ===" << endl;
-    cout << "Trying to book many tickets for regular bus (capacity 40)..." << endl;
+    cout << "Trying to book many tickets for bus (capacity 40)..." << endl;
     for (int i = 0; i < 42; i++)
     { // Try to book 42 tickets for bus with capacity 40
-        if (!regularBus->bookTicket())
+        if (!passenger2.bookTicket(bus, "Route 01 - 08:00"))
         {
-            cout << "Bus is full after " << regularBus->getPassengers() << " tickets!" << endl;
+            cout << "Bus is full after " << bus->getPassengers() << " tickets!" << endl;
             break;
         }
     }
     cout << endl;
+
+    // Cancel a ticket
+    cout << "=== CANCEL TICKET TEST ===" << endl;
+    passenger2.cancelTicket("Route 01 - 08:00");
+    passenger1.cancelTicket("Express Route 02 - 08:15");
 
     // Display passenger information
     passenger1.displayInfo();
@@ -276,10 +311,10 @@ int main()
 
     // Display final status
     cout << "\n=== FINAL SYSTEM STATUS ===" << endl;
-    cout << "Regular bus: " << regularBus->getPassengers()
-         << "/" << regularBus->getCapacity() << " passengers" << endl;
+    cout << "Bus: " << bus->getPassengers()
+         << "/" << bus->getCapacity() << " passengers" << endl;
     cout << "Express bus: " << expressBus->getPassengers()
          << "/" << expressBus->getCapacity() << " passengers" << endl;
 
-    return 0;  
+    return 0;
 }
