@@ -1,7 +1,26 @@
 #include <iostream>
 #include <string>
 #include <vector>
+
 using namespace std;
+
+// Schedule class
+class Schedule {
+private:
+    string time;      
+    string action; // "departure" or "arrival"
+    string route; 
+public:
+    Schedule(string t, string a, string r) : time(t), action(a), route(r) {}
+
+    string getTime() const { return time; }
+    string getAction() const { return action; }
+    string getRoute() const { return route; }
+
+    void displayInfo() const {
+        cout << time << " - " << route << " " << action << endl;
+    }
+};
 
 // Vehicle class
 class Vehicle
@@ -11,6 +30,7 @@ protected:
     int capacity;                    // Maximum passengers
     int passengers;                  // Current passengers
     vector<string> assignedStations; // List of assigned stations
+    vector<Schedule> vehicleSchedules; // Vehicle's schedule
 
 public:
     // Constructor
@@ -35,6 +55,14 @@ public:
     {
         assignedStations.push_back(stationName);
         cout << "Vehicle " << route << " assigned to station: " << stationName << endl;
+    }
+
+    // Add schedule to vehicle
+    void addSchedule(Schedule schedule)
+    {
+        vehicleSchedules.push_back(schedule);
+        cout << "Added schedule to vehicle " << route << ": ";
+        schedule.displayInfo();
     }
 
     // Book a seat
@@ -79,6 +107,12 @@ public:
             }
         }
         cout << endl;
+        cout << "Vehicle schedules: " << vehicleSchedules.size() << endl;
+        for (size_t i = 0; i < vehicleSchedules.size(); i++)
+        {
+            cout << "  ";
+            vehicleSchedules[i].displayInfo();
+        }
     }
 
     // Getters
@@ -98,7 +132,6 @@ public:
     ExpressBus(string r, int cap, double speed = 80.0) : Vehicle(r, cap)
     {
         expressSpeed = speed;
-        cout << "This is an express bus!" << endl;
     }
 
     // Destructor
@@ -129,6 +162,12 @@ public:
             }
         }
         cout << endl;
+        cout << "Vehicle schedules: " << vehicleSchedules.size() << endl;
+        for (size_t i = 0; i < vehicleSchedules.size(); i++)
+        {
+            cout << "  ";
+            vehicleSchedules[i].displayInfo();
+        }
     }
 };
 
@@ -138,7 +177,7 @@ class Station
 private:
     string name;
     string location;
-    vector<string> schedules; // Maximum 10 schedules
+    vector<Schedule> schedules; // Maximum 10 schedules
 
 public:
     // Constructor
@@ -153,12 +192,13 @@ public:
     ~Station() {}
 
     // Add schedule
-    void addSchedule(string schedule)
+    void addSchedule(Schedule schedule)
     {
         if (schedules.size() < 10)
         { // Maximum 10 schedules
             schedules.push_back(schedule);
-            cout << "Added schedule: " << schedule << endl;
+            cout << "Added schedule: ";
+            schedule.displayInfo();
         }
         else
         {
@@ -176,14 +216,15 @@ public:
         cout << "Schedules:" << endl;
         for (int i = 0; i < schedules.size(); i++)
         {
-            cout << "  " << (i + 1) << ". " << schedules[i] << endl;
+            cout << "  " << (i + 1) << ". ";
+            schedules[i].displayInfo();
         }
     }
 
     // Getters
     string getName() { return name; }
     string getLocation() { return location; }
-    vector<string> getSchedules() { return schedules; }
+    vector<Schedule> getSchedules() { return schedules; }
 };
 
 // Passenger class
@@ -271,6 +312,11 @@ int main()
     bus->assignToStation(benThanhStation.getName());
     expressBus->assignToStation(thuDucStation.getName());
 
+    // Add schedules to vehicles
+    bus->addSchedule(Schedule("08:00", "departure", "Route 01"));
+    bus->addSchedule(Schedule("09:30", "arrival", "Route 01"));
+    expressBus->addSchedule(Schedule("08:15", "departure", "Express Route 02"));
+
     // Travel times
     cout << "=== TRAVEL TIME COMPARISON ===" << endl;
     double distance = 100; // 100km
@@ -286,9 +332,9 @@ int main()
     cout << endl;
 
     // Add schedules to station
-    benThanhStation.addSchedule("08:00 - Route 01 departure");
-    benThanhStation.addSchedule("08:15 - Express Route 02 departure");
-    benThanhStation.addSchedule("09:30 - Route 01 arrival");
+    benThanhStation.addSchedule(Schedule("08:00", "departure", "Route 01"));
+    benThanhStation.addSchedule(Schedule("08:15", "departure", "Express Route 02"));
+    benThanhStation.addSchedule(Schedule("09:30", "arrival", "Route 01"));
 
     benThanhStation.displayInfo();
     thuDucStation.displayInfo();
@@ -330,8 +376,9 @@ int main()
     cout << "\n=== SCHEDULE LIMIT TEST ===" << endl;
     for (int i = 4; i <= 12; i++)
     {
-        string schedule = "Schedule number " + to_string(i);
-        benThanhStation.addSchedule(schedule);
+        string scheduleTime = "10:" + (i < 10 ? string("0") : string("")) + to_string(i);
+        Schedule newSchedule(scheduleTime, "departure", "Route " + to_string(i));
+        benThanhStation.addSchedule(newSchedule);
     }
 
     benThanhStation.displayInfo();
